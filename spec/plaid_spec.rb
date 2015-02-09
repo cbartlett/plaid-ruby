@@ -382,12 +382,17 @@ describe Plaid do
       connect_user = Plaid.add_user('connect','plaid_test','plaid_good','wells')
 
       context 'auth upgrade is successful' do
-        connect_user.upgrade
+        connect_user.upgrade('auth')
         it { expect(connect_user.get_auth).to be_truthy }
       end
 
       context 'connect upgrade is successful' do
-        auth_user.upgrade
+        auth_user.upgrade('connect')
+        it { expect(auth_user.get_connect).to be_truthy }
+      end
+
+      context 'connect upgrade is successful' do
+        auth_user.upgrade('info')
         it { expect(auth_user.get_connect).to be_truthy }
       end
     end
