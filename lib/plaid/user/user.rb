@@ -23,10 +23,10 @@ module Plaid
     end
 
     def mfa_authentication(auth,type)
-      auth_path = self.permissions[0] + '/step'
+      auth_path = self.permissions.last + '/step'
       res = Plaid.post(auth_path,{mfa:auth,access_token:self.access_token,type:type})
       self.accounts = [], self.transactions = []
-      update_user(res)
+      build_user(res)
     end
 
     def get_auth
@@ -62,39 +62,31 @@ module Plaid
       begin
         if res[:msg].nil?
           res['accounts'].each do |account|
-            self.accounts << new_account(account)
+            if self.accounts.any? { |h| h == account['_id'] }
+              owned_account = self.accounts.find { |h| h == account['_id'] }
+              owned_account.new(account)
+            else
+              self.accounts << new_account(account)
+            end
           end if res['accounts']
           res['transactions'].each do |transaction|
-            self.transactions << new_transaction(transaction)
+            if self.transactions.any? { |t| t == transaction['_id'] }
+              owned_transaction = self.transactions.find { |h| h == transaction['_id'] }
+              owned_transaction.new(transaction)
+            else
+              self.transactions << new_transaction(transaction)
+            end
           end if res['transactions']
-          self.permissions << api_level
-          self.access_token = res['access_token']
-          self.api_res = 'success'
-          clean_up_user(self)
-        else
-          self.pending_mfa_questions = res[:body], self.accounts = res[:msg], self.transactions = res[:msg], self.permissions << api_level, self.access_token = res[:body]['access_token'], self.api_res = res[:msg]
-        end
-      rescue => e
-        error_handler(e)
-      else
-        self
-      end
-    end
-
-    def update_user(res,api_level=nil)
-      begin
-        if res[:msg].nil?
-          res['accounts'].each do |account|
-            self.accounts << new_account(account)
-          end if res['accounts']
-          res['transactions'].each do |transaction|
-            self.transactions << new_transaction(transaction)
-          end if res['transactions']
-          self.permissions << api_level
+          self.permissions << api_level unless self.permissions.include? api_level
           self.api_res = 'success'
           self.pending_mfa_questions = ''
+          self.access_token = res['access_token']
+          clean_up_user(self)
         else
+          self.access_token = res[:body]['access_token']
           self.pending_mfa_questions = res[:body]
+          self.api_res = res[:msg]
+          self.permissions << api_level
         end
       rescue => e
         error_handler(e)
