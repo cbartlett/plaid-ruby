@@ -15,7 +15,7 @@ Last stable version: 0.1.6
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'plaid'
+gem 'plaid', '~> 1.0.0'
 ```
 
 And install
